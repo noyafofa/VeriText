@@ -20,11 +20,18 @@
             position: absolute;
             width: 100%;
             height: 2px;
-            background: #0ea5e9;
+            background: #0ea5e9; /* Blue by default */
             box-shadow: 0 0 10px #0ea5e9, 0 0 20px #0ea5e9;
             animation: scan 2.5s linear infinite;
             top: 0;
             z-index: 10;
+            transition: background 0.5s, box-shadow 0.5s; /* Smooth transition for color change */
+        }
+
+        /* The Red State (Secret Trigger) */
+        .scan-line.secret-mode {
+            background: #ef4444; /* Red */
+            box-shadow: 0 0 10px #ef4444, 0 0 20px #ef4444;
         }
 
         @keyframes scan {
@@ -67,12 +74,73 @@
         .focus-box.success {
             border-color: #22c55e;
         }
+
+        /* Custom Input Styles */
+        .auth-input {
+            width: 100%;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            transition: all 0.3s;
+        }
+        .auth-input:focus {
+            border-color: #3b82f6;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
     </style>
 </head>
 <body class="tech-bg min-h-screen flex flex-col items-center justify-center">
 
+    <!-- VIEW 0: AUTH PAGE (Login/Register) -->
+    <div id="view-auth" class="w-full max-w-md p-6 flex flex-col items-center justify-center space-y-6 animate-[fadeIn_0.5s_ease-out]">
+        <div class="space-y-2 text-center">
+             <h1 class="text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-200">
+                VeriText<span class="text-xs align-top text-gray-500 font-mono">ID</span>
+            </h1>
+            <p class="text-gray-400 text-sm tracking-widest font-mono">SECURE ACCESS v4.5</p>
+        </div>
+
+        <div class="w-full bg-slate-800/50 p-6 rounded-xl border border-slate-700 space-y-6 shadow-2xl">
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-700">
+                <button onclick="switchAuthMode('login')" id="tab-login" class="flex-1 pb-3 text-blue-400 border-b-2 border-blue-400 font-bold transition-colors">כניסה</button>
+                <button onclick="switchAuthMode('register')" id="tab-register" class="flex-1 pb-3 text-gray-500 hover:text-gray-300 transition-colors">הרשמה</button>
+            </div>
+
+            <!-- Form -->
+            <div class="space-y-4">
+                <div class="space-y-1">
+                    <label class="text-xs text-gray-400 font-mono">Email / דוא״ל</label>
+                    <input type="email" id="auth-email" class="auth-input text-right ltr-placeholder" placeholder="user@example.com" dir="ltr">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs text-gray-400 font-mono">Password / סיסמה</label>
+                    <input type="password" id="auth-pass" class="auth-input text-right" placeholder="••••••" dir="ltr">
+                </div>
+                
+                <div id="auth-error" class="text-red-400 text-xs text-center hidden p-2 bg-red-500/10 rounded border border-red-500/20"></div>
+
+                <button onclick="handleAuth()" id="auth-btn" class="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg font-bold text-white shadow-lg hover:shadow-blue-900/50 transition-all active:scale-95">
+                    התחבר למערכת
+                </button>
+            </div>
+            
+            <p class="text-[10px] text-gray-600 text-center">VeriText Protocol Secure Login</p>
+        </div>
+    </div>
+
     <!-- VIEW 1: LANDING PAGE -->
-    <div id="view-landing" class="w-full max-w-md p-6 flex flex-col items-center text-center space-y-8">
+    <div id="view-landing" class="hidden-view w-full max-w-md p-6 flex flex-col items-center text-center space-y-8 animate-[fadeIn_0.5s_ease-out]">
+        
+        <!-- User Info Header -->
+        <div class="w-full flex justify-between items-center text-xs text-gray-500 font-mono bg-slate-800/30 p-2 rounded border border-slate-700/50">
+            <span id="user-display">User: Guest</span>
+            <button onclick="logout()" class="text-red-400 hover:text-red-300">LOGOUT</button>
+        </div>
+
         <div class="relative">
             <div class="absolute inset-0 bg-blue-500 blur-2xl opacity-20 rounded-full"></div>
             <i data-lucide="shield-alert" class="w-20 h-20 text-blue-400 relative z-10"></i>
@@ -82,7 +150,7 @@
             <h1 class="text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-200">
                 VeriText<span class="text-xs align-top text-gray-500 font-mono">PRO</span>
             </h1>
-            <p class="text-gray-400 text-sm tracking-widest font-mono">AI FORENSIC ANALYSIS TOOL v4.2</p>
+            <p class="text-gray-400 text-sm tracking-widest font-mono">AI FORENSIC ANALYSIS TOOL v4.5</p>
         </div>
 
         <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 w-full text-right text-xs text-gray-400 font-mono space-y-2">
@@ -104,7 +172,7 @@
             </div>
         </div>
 
-        <button onclick="startCamera()" class="group relative w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl font-bold text-white shadow-lg shadow-blue-900/50 hover:shadow-blue-900/80 transition-all active:scale-95 border-t border-blue-400">
+        <button onclick="checkPermissionAndStart()" class="group relative w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl font-bold text-white shadow-lg shadow-blue-900/50 hover:shadow-blue-900/80 transition-all active:scale-95 border-t border-blue-400">
             <div class="flex items-center justify-center gap-2">
                 <i data-lucide="scan-line" class="w-5 h-5"></i>
                 <span>התחל סריקה מלאה</span>
@@ -136,7 +204,9 @@
             
             <!-- Scanning Grid Overlay -->
             <div id="scan-grid" class="absolute inset-0 z-10 pointer-events-none">
-                <div class="scan-line"></div>
+                <!-- THE SCAN LINE -->
+                <div id="active-scan-line" class="scan-line"></div>
+                
                 <!-- Corners -->
                 <div class="absolute top-10 left-10 w-8 h-8 border-t-2 border-l-2 border-cyan-500/50"></div>
                 <div class="absolute top-10 right-10 w-8 h-8 border-t-2 border-r-2 border-cyan-500/50"></div>
@@ -190,24 +260,24 @@
         </div>
     </div>
 
-    <!-- VIEW 4: RESULTS (THE PRANK) -->
+    <!-- VIEW 4: RESULTS (THE PRANK OR HUMAN) -->
     <div id="view-result" class="hidden-view w-full max-w-md p-6 flex flex-col space-y-6 animate-[fadeIn_0.5s_ease-out]">
         
-        <!-- Danger Header -->
-        <div class="bg-red-500/10 border border-red-500/50 rounded-xl p-4 flex items-center gap-4 animate-pulse">
-            <div class="bg-red-500 rounded-full p-2">
-                <i data-lucide="siren" class="w-6 h-6 text-white animate-bounce"></i>
+        <!-- Dynamic Result Header -->
+        <div id="result-header" class="bg-red-500/10 border border-red-500/50 rounded-xl p-4 flex items-center gap-4 animate-pulse">
+            <div id="result-icon-bg" class="bg-red-500 rounded-full p-2">
+                <i id="result-icon" data-lucide="siren" class="w-6 h-6 text-white animate-bounce"></i>
             </div>
             <div>
-                <h2 class="text-red-500 font-black text-xl uppercase tracking-wider">זוהתה בינה מלאכותית</h2>
-                <p class="text-red-400 text-xs">רמת סבירות קריטית</p>
+                <h2 id="result-title" class="text-red-500 font-black text-xl uppercase tracking-wider">זוהתה בינה מלאכותית</h2>
+                <p id="result-subtitle" class="text-red-400 text-xs">רמת סבירות קריטית</p>
             </div>
         </div>
 
         <!-- Score Gauge -->
         <div class="relative py-4 flex justify-center">
-            <div class="w-48 h-48 rounded-full border-8 border-gray-800 relative flex items-center justify-center">
-                <div class="absolute inset-0 rounded-full border-8 border-red-500 border-l-transparent border-b-transparent rotate-45"></div>
+            <div id="gauge-circle" class="w-48 h-48 rounded-full border-8 border-gray-800 relative flex items-center justify-center">
+                <div id="gauge-fill" class="absolute inset-0 rounded-full border-8 border-red-500 border-l-transparent border-b-transparent rotate-45"></div>
                 <div class="text-center">
                     <div class="text-5xl font-black text-white tracking-tighter" id="ai-score">98.2%</div>
                     <div class="text-xs text-gray-400 font-mono uppercase mt-1">AI Probability</div>
@@ -219,31 +289,56 @@
         <div class="space-y-3">
             <h3 class="text-gray-400 text-xs font-mono uppercase border-b border-gray-800 pb-2 mb-3">Forensic Analysis Report</h3>
             
-            <div class="flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-red-500">
+            <div id="metric-1" class="flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-red-500">
                 <span class="text-gray-300">Semantic Coherence</span>
-                <span class="font-mono text-red-400 font-bold">ARTIFICIAL</span>
+                <span id="text-metric-1" class="font-mono text-red-400 font-bold">ARTIFICIAL</span>
             </div>
             
-            <div class="flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-orange-500">
+            <div id="metric-2" class="flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-orange-500">
                 <span class="text-gray-300">Human Perplexity</span>
-                <span class="font-mono text-orange-400 font-bold">LOW (12%)</span>
+                <span id="text-metric-2" class="font-mono text-orange-400 font-bold">LOW (12%)</span>
             </div>
 
-            <div class="flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-purple-500">
+            <div id="metric-3" class="flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-purple-500">
                 <span class="text-gray-300">Pattern Match</span>
-                <span class="font-mono text-purple-400 font-bold">GPT-4-TURBO</span>
+                <span id="text-metric-3" class="font-mono text-purple-400 font-bold">GPT-4-TURBO</span>
             </div>
         </div>
 
         <div class="bg-black/40 p-4 rounded text-xs text-gray-500 font-mono">
             ID: <span id="report-id">#8492-AX</span><br>
             Timestamp: <span id="report-time"></span><br>
-            Status: <span class="text-red-500">FLAGGED</span>
+            Status: <span id="status-text" class="text-red-500">FLAGGED</span>
         </div>
 
         <button onclick="location.reload()" class="w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white font-medium transition-colors border border-gray-600">
             בצע סריקה נוספת
         </button>
+    </div>
+
+    <!-- VIEW 5: FAKE SYSTEM ERROR (FOR UNAUTHORIZED USERS) -->
+    <div id="view-sys-error" class="hidden-view fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center p-8 text-center animate-[fadeIn_0.3s_ease-out]">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-xl max-w-sm w-full space-y-4 relative overflow-hidden shadow-2xl">
+            <div class="absolute top-0 left-0 w-full h-1 bg-yellow-500 animate-pulse"></div>
+            
+            <div class="mx-auto bg-yellow-500/10 p-4 rounded-full w-20 h-20 flex items-center justify-center mb-4">
+                <i data-lucide="triangle-alert" class="w-10 h-10 text-yellow-500"></i>
+            </div>
+            
+            <h3 class="text-xl font-bold text-white">שגיאת מערכת</h3>
+            <p class="text-gray-400 text-sm">השרתים עמוסים כרגע. לא ניתן לבצע סריקה חדשה מחשבון זה.</p>
+            
+            <div class="bg-black/50 p-3 rounded text-xs font-mono text-yellow-500/80 text-left border border-yellow-500/20" dir="ltr">
+                Error: 503 Service Unavailable<br>
+                > Rate Limit Exceeded<br>
+                > User_ID: Restricted<br>
+                > Retry-After: 3600s
+            </div>
+            
+            <button onclick="location.reload()" class="w-full py-3 bg-slate-800 hover:bg-slate-700 rounded-lg text-gray-300 text-sm transition-colors border border-slate-600">
+                נסה שוב מאוחר יותר
+            </button>
+        </div>
     </div>
 
     <script>
@@ -253,15 +348,128 @@
         // State & DOM Elements
         let stream = null;
         let attemptCount = 0;
+        let isHumanResult = false; 
+        let scanTimer = null;
+        let authMode = 'login'; // 'login' or 'register'
+        let currentUser = null;
+
+        // Allowed Emails List
+        const ALLOWED_EMAILS = [
+            'noya.p.email@gmail.com',
+            'yh.email@gmail.com'
+        ];
+
+        // Views
+        const authView = document.getElementById('view-auth');
         const landingView = document.getElementById('view-landing');
         const cameraView = document.getElementById('view-camera');
         const processingView = document.getElementById('view-processing');
         const resultView = document.getElementById('view-result');
+        const errorView = document.getElementById('view-sys-error');
+        
+        // Elements
         const videoElement = document.getElementById('camera-feed');
         const instruction = document.getElementById('scan-instruction');
         const focusRect = document.getElementById('focus-rect');
-        
-        // Timer Logic
+        const activeScanLine = document.getElementById('active-scan-line');
+        const authBtn = document.getElementById('auth-btn');
+        const authError = document.getElementById('auth-error');
+
+        // --- AUTH LOGIC ---
+
+        function switchAuthMode(mode) {
+            authMode = mode;
+            const loginTab = document.getElementById('tab-login');
+            const registerTab = document.getElementById('tab-register');
+            
+            if (mode === 'login') {
+                loginTab.className = "flex-1 pb-3 text-blue-400 border-b-2 border-blue-400 font-bold transition-colors";
+                registerTab.className = "flex-1 pb-3 text-gray-500 hover:text-gray-300 transition-colors";
+                authBtn.innerText = "התחבר למערכת";
+            } else {
+                loginTab.className = "flex-1 pb-3 text-gray-500 hover:text-gray-300 transition-colors";
+                registerTab.className = "flex-1 pb-3 text-blue-400 border-b-2 border-blue-400 font-bold transition-colors";
+                authBtn.innerText = "צור חשבון חדש";
+            }
+            authError.classList.add('hidden');
+        }
+
+        function handleAuth() {
+            const emailInput = document.getElementById('auth-email').value.toLowerCase().trim();
+            const passInput = document.getElementById('auth-pass').value.trim();
+            
+            if (!emailInput || !passInput) {
+                showAuthError("נא למלא את כל השדות");
+                return;
+            }
+
+            // Get existing users from LS
+            const users = JSON.parse(localStorage.getItem('veritext_users') || '[]');
+
+            if (authMode === 'register') {
+                // Check if user exists
+                if (users.find(u => u.email === emailInput)) {
+                    showAuthError("המייל הזה כבר רשום במערכת");
+                    return;
+                }
+                
+                // Add new user
+                users.push({ email: emailInput, password: passInput });
+                localStorage.setItem('veritext_users', JSON.stringify(users));
+                
+                // Auto login
+                loginSuccess(emailInput);
+
+            } else {
+                // Login
+                const user = users.find(u => u.email === emailInput && u.password === passInput);
+                if (user) {
+                    loginSuccess(emailInput);
+                } else {
+                    showAuthError("שם משתמש או סיסמה שגויים");
+                }
+            }
+        }
+
+        function showAuthError(msg) {
+            authError.innerText = msg;
+            authError.classList.remove('hidden');
+        }
+
+        function loginSuccess(email) {
+            currentUser = email;
+            document.getElementById('user-display').innerText = `User: ${email}`;
+            
+            // Switch views
+            authView.classList.add('hidden-view');
+            landingView.classList.remove('hidden-view');
+        }
+
+        function logout() {
+            currentUser = null;
+            landingView.classList.add('hidden-view');
+            authView.classList.remove('hidden-view');
+            document.getElementById('auth-email').value = '';
+            document.getElementById('auth-pass').value = '';
+        }
+
+        // --- SCAN LOGIC ---
+
+        function checkPermissionAndStart() {
+            if (!currentUser) return;
+
+            // CHECK IF USER IS ALLOWED
+            if (ALLOWED_EMAILS.includes(currentUser)) {
+                // Allowed user -> Start regular Prank Flow
+                startCamera();
+            } else {
+                // Unauthorized user -> Show Fake System Error
+                landingView.classList.add('hidden-view');
+                errorView.classList.remove('hidden-view');
+            }
+        }
+
+        // Timer Logic for Header Clock
         setInterval(() => {
             const now = new Date();
             if(document.getElementById('camera-timer')) {
@@ -271,7 +479,7 @@
 
         async function startCamera() {
             try {
-                // Request camera (try environment/back camera first)
+                // Request camera
                 stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "environment" } 
                 });
@@ -281,6 +489,20 @@
                 cameraView.classList.remove('hidden-view');
                 attemptCount = 0;
                 
+                // RESET PRANK LOGIC
+                isHumanResult = false;
+                activeScanLine.classList.remove('secret-mode'); // Make sure it's blue
+                
+                // START 5 SECOND TIMER
+                // If user doesn't click capture within 5 seconds, switch mode to Human
+                if (scanTimer) clearTimeout(scanTimer);
+                
+                scanTimer = setTimeout(() => {
+                    // Trigger the visual cue: Change scan line to Red
+                    activeScanLine.classList.add('secret-mode');
+                    isHumanResult = true; // Set the result to be Human
+                }, 5000);
+
                 // Initial Instruction
                 instruction.innerText = "מאתר מסמך...";
                 instruction.className = "bg-black/60 text-white text-xs px-2 py-1 rounded font-mono";
@@ -296,19 +518,21 @@
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
+            if (scanTimer) clearTimeout(scanTimer);
             cameraView.classList.add('hidden-view');
             landingView.classList.remove('hidden-view');
         }
 
         function attemptCapture() {
-            // THE PRANK LOGIC IN CAMERA
             if (attemptCount === 0) {
+                if (scanTimer) clearTimeout(scanTimer);
+                // Locked outcome based on time
+                
                 // Step 1: Fake "Move Closer"
                 instruction.innerText = "הטקסט רחוק מדי. נא לקרב את המכשיר ב-10 ס״מ";
                 instruction.classList.replace("bg-black/60", "bg-red-500/80");
                 focusRect.classList.add("active"); // Turns red/smaller
                 
-                // Play error sound simulated by vibration if possible
                 if (navigator.vibrate) navigator.vibrate(200);
 
                 setTimeout(() => {
@@ -334,12 +558,10 @@
         }
 
         function takeFakePhoto() {
-            // Flash Effect
             const flash = document.createElement('div');
             flash.className = "fixed inset-0 bg-white z-[100] pointer-events-none";
             document.body.appendChild(flash);
             
-            // Sound effect logic would go here, simulated by vibration
             if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
 
             setTimeout(() => {
@@ -347,13 +569,11 @@
                 flash.style.transition = 'opacity 0.5s';
                 setTimeout(() => flash.remove(), 500);
                 
-                // Move to processing
                 startProcessing();
             }, 100);
         }
 
         function startProcessing() {
-            // Stop camera to save battery/resources
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
             }
@@ -374,7 +594,6 @@
             const percentText = document.getElementById('progress-percent');
             let percent = 0;
 
-            // Log Generator
             const logInterval = setInterval(() => {
                 const randomHex = '0x' + Math.floor(Math.random()*16777215).toString(16);
                 const p = document.createElement('div');
@@ -383,13 +602,11 @@
                 logs.scrollTop = logs.scrollHeight;
             }, 200);
 
-            // Progress Bar Logic
             const progressInterval = setInterval(() => {
                 percent += Math.floor(Math.random() * 3) + 1;
                 if (percent > 100) percent = 100;
                 percentText.innerText = percent + "%";
 
-                // Update text based on percent
                 if (percent < 30) stageText.innerText = stages[0];
                 else if (percent < 50) stageText.innerText = stages[1];
                 else if (percent < 70) stageText.innerText = stages[2];
@@ -407,16 +624,78 @@
         function showResult() {
             processingView.classList.add('hidden-view');
             resultView.classList.remove('hidden-view');
-
-            // Set dynamic details
-            document.getElementById('report-time').innerText = new Date().toLocaleString('he-IL');
             
-            // Randomize score slightly between 96.0 and 99.9 for realism
+            const nowStr = new Date().toLocaleString('he-IL');
+            document.getElementById('report-time').innerText = nowStr;
+
+            if (isHumanResult) {
+                renderHumanResult();
+            } else {
+                renderAIResult();
+            }
+            
+            lucide.createIcons();
+        }
+
+        function renderAIResult() {
             const score = (96 + Math.random() * 3.9).toFixed(1);
             document.getElementById('ai-score').innerText = score + "%";
+            document.getElementById('ai-score').className = "text-5xl font-black text-white tracking-tighter";
+
+            document.getElementById('result-header').className = "bg-red-500/10 border border-red-500/50 rounded-xl p-4 flex items-center gap-4 animate-pulse";
+            document.getElementById('result-icon-bg').className = "bg-red-500 rounded-full p-2";
+            document.getElementById('result-icon').setAttribute('data-lucide', 'siren');
+            document.getElementById('result-title').innerText = "זוהתה בינה מלאכותית";
+            document.getElementById('result-title').className = "text-red-500 font-black text-xl uppercase tracking-wider";
+            document.getElementById('result-subtitle').innerText = "רמת סבירות קריטית";
+            document.getElementById('result-subtitle').className = "text-red-400 text-xs";
+
+            document.getElementById('gauge-fill').className = "absolute inset-0 rounded-full border-8 border-red-500 border-l-transparent border-b-transparent rotate-45";
+
+            document.getElementById('metric-1').className = "flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-red-500";
+            document.getElementById('text-metric-1').innerText = "ARTIFICIAL";
+            document.getElementById('text-metric-1').className = "font-mono text-red-400 font-bold";
+
+            document.getElementById('metric-2').className = "flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-orange-500";
+            document.getElementById('text-metric-2').innerText = "LOW (12%)";
+            document.getElementById('text-metric-2').className = "font-mono text-orange-400 font-bold";
+
+            document.getElementById('metric-3').className = "flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-purple-500";
+            document.getElementById('text-metric-3').innerText = "GPT-4-TURBO";
             
-            // Re-init icons for the new view
-            lucide.createIcons();
+            document.getElementById('status-text').innerText = "FLAGGED";
+            document.getElementById('status-text').className = "text-red-500";
+        }
+
+        function renderHumanResult() {
+            const score = (1 + Math.random() * 3.5).toFixed(1);
+            document.getElementById('ai-score').innerText = score + "%";
+            
+            document.getElementById('result-header').className = "bg-green-500/10 border border-green-500/50 rounded-xl p-4 flex items-center gap-4";
+            document.getElementById('result-icon-bg').className = "bg-green-500 rounded-full p-2";
+            document.getElementById('result-icon').setAttribute('data-lucide', 'shield-check');
+            
+            document.getElementById('result-title').innerText = "טקסט אנושי מאומת";
+            document.getElementById('result-title').className = "text-green-500 font-black text-xl uppercase tracking-wider";
+            document.getElementById('result-subtitle').innerText = "לא זוהו עקבות AI";
+            document.getElementById('result-subtitle').className = "text-green-400 text-xs";
+
+            document.getElementById('gauge-fill').className = "absolute inset-0 rounded-full border-8 border-green-500 border-l-transparent border-r-transparent rotate-180";
+
+            document.getElementById('metric-1').className = "flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-green-500";
+            document.getElementById('text-metric-1').innerText = "NATURAL";
+            document.getElementById('text-metric-1').className = "font-mono text-green-400 font-bold";
+
+            document.getElementById('metric-2').className = "flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-blue-500";
+            document.getElementById('text-metric-2').innerText = "HIGH (98%)";
+            document.getElementById('text-metric-2').className = "font-mono text-blue-400 font-bold";
+
+            document.getElementById('metric-3').className = "flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-gray-500";
+            document.getElementById('text-metric-3').innerText = "NONE DETECTED";
+            document.getElementById('text-metric-3').className = "font-mono text-gray-400 font-bold";
+
+            document.getElementById('status-text').innerText = "CLEARED";
+            document.getElementById('status-text').className = "text-green-500";
         }
     </script>
 </body>
