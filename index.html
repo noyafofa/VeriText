@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VeriText Protocol | AI Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Heebo', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+            overflow-x: hidden;
+        }
+        
+        /* Scan Line Animation */
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: #0ea5e9;
+            box-shadow: 0 0 10px #0ea5e9, 0 0 20px #0ea5e9;
+            animation: scan 2.5s linear infinite;
+            top: 0;
+            z-index: 10;
+        }
+
+        @keyframes scan {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* Tech Grid Background */
+        .tech-bg {
+            background-image: linear-gradient(rgba(14, 165, 233, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(14, 165, 233, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Terminal Text Typing */
+        .typing-effect::after {
+            content: '▋';
+            animation: blink 1s step-start infinite;
+        }
+        
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .hidden-view {
+            display: none !important;
+        }
+
+        /* Pulse for camera focus simulation */
+        .focus-box {
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.5s ease;
+        }
+        .focus-box.active {
+            border-color: #ef4444;
+            transform: scale(0.95);
+        }
+        .focus-box.success {
+            border-color: #22c55e;
+        }
+    </style>
+</head>
+<body class="tech-bg min-h-screen flex flex-col items-center justify-center">
+
+    <!-- VIEW 1: LANDING PAGE -->
+    <div id="view-landing" class="w-full max-w-md p-6 flex flex-col items-center text-center space-y-8">
+        <div class="relative">
+            <div class="absolute inset-0 bg-blue-500 blur-2xl opacity-20 rounded-full"></div>
+            <i data-lucide="shield-alert" class="w-20 h-20 text-blue-400 relative z-10"></i>
+        </div>
+        
+        <div class="space-y-2">
+            <h1 class="text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-200">
+                VeriText<span class="text-xs align-top text-gray-500 font-mono">PRO</span>
+            </h1>
+            <p class="text-gray-400 text-sm tracking-widest font-mono">AI FORENSIC ANALYSIS TOOL v4.2</p>
+        </div>
+
+        <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700 w-full text-right text-xs text-gray-400 font-mono space-y-2">
+            <div class="flex justify-between">
+                <span>Database Status:</span>
+                <span class="text-green-400">ONLINE</span>
+            </div>
+            <div class="flex justify-between">
+                <span>GPT-4 Detection:</span>
+                <span class="text-green-400">ACTIVE</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Gemini Analysis:</span>
+                <span class="text-green-400">ACTIVE</span>
+            </div>
+            <div class="flex justify-between">
+                <span>Claude Patterning:</span>
+                <span class="text-green-400">ACTIVE</span>
+            </div>
+        </div>
+
+        <button onclick="startCamera()" class="group relative w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl font-bold text-white shadow-lg shadow-blue-900/50 hover:shadow-blue-900/80 transition-all active:scale-95 border-t border-blue-400">
+            <div class="flex items-center justify-center gap-2">
+                <i data-lucide="scan-line" class="w-5 h-5"></i>
+                <span>התחל סריקה מלאה</span>
+            </div>
+            <div class="absolute inset-0 rounded-xl bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
+        </button>
+        
+        <p class="text-[10px] text-gray-600">שימוש במערכת זו מנוטר לצרכי אבטחת מידע.</p>
+    </div>
+
+    <!-- VIEW 2: CAMERA / SCANNING -->
+    <div id="view-camera" class="hidden-view fixed inset-0 bg-black z-50 flex flex-col">
+        <!-- Header Overlay -->
+        <div class="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent z-20 flex justify-between items-start">
+            <div class="text-xs font-mono text-cyan-400">
+                <div>REC ●</div>
+                <div id="camera-timer">00:00:00</div>
+            </div>
+            <div class="text-xs font-mono text-right text-white/70">
+                <div>ISO 800</div>
+                <div>F/2.4</div>
+                <div>1/60</div>
+            </div>
+        </div>
+
+        <!-- Camera Viewport -->
+        <div class="relative flex-1 bg-gray-900 overflow-hidden flex items-center justify-center">
+            <video id="camera-feed" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover opacity-80"></video>
+            
+            <!-- Scanning Grid Overlay -->
+            <div id="scan-grid" class="absolute inset-0 z-10 pointer-events-none">
+                <div class="scan-line"></div>
+                <!-- Corners -->
+                <div class="absolute top-10 left-10 w-8 h-8 border-t-2 border-l-2 border-cyan-500/50"></div>
+                <div class="absolute top-10 right-10 w-8 h-8 border-t-2 border-r-2 border-cyan-500/50"></div>
+                <div class="absolute bottom-24 left-10 w-8 h-8 border-b-2 border-l-2 border-cyan-500/50"></div>
+                <div class="absolute bottom-24 right-10 w-8 h-8 border-b-2 border-r-2 border-cyan-500/50"></div>
+                
+                <!-- Center Focus -->
+                <div id="focus-rect" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-40 focus-box rounded-lg">
+                    <div class="absolute -top-6 left-0 w-full text-center">
+                        <span id="scan-instruction" class="bg-black/60 text-white text-xs px-2 py-1 rounded font-mono">מאתר טקסט...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="h-24 bg-black flex items-center justify-center gap-8 relative z-20">
+            <button onclick="stopCamera()" class="p-3 rounded-full bg-gray-800 text-gray-400">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <button id="capture-btn" onclick="attemptCapture()" class="w-16 h-16 rounded-full border-4 border-white flex items-center justify-center relative">
+                <div class="w-14 h-14 rounded-full bg-white active:bg-gray-300 transition-colors"></div>
+            </button>
+            <button class="p-3 rounded-full bg-gray-800 text-gray-400">
+                <i data-lucide="zap-off" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- VIEW 3: PROCESSING (FAKE LOADING) -->
+    <div id="view-processing" class="hidden-view fixed inset-0 bg-[#0f172a] z-50 flex flex-col items-center justify-center p-6 text-center">
+        <div class="w-full max-w-sm space-y-8">
+            <!-- Hexagon Loader -->
+            <div class="relative w-24 h-24 mx-auto">
+                <div class="absolute inset-0 border-4 border-blue-900 rounded-full animate-ping"></div>
+                <div class="absolute inset-0 border-t-4 border-cyan-400 rounded-full animate-spin"></div>
+                <div class="absolute inset-2 border-r-4 border-purple-500 rounded-full animate-spin" style="animation-direction: reverse; animation-duration: 1.5s;"></div>
+                <div class="absolute inset-0 flex items-center justify-center font-mono font-bold text-cyan-400 text-lg" id="progress-percent">0%</div>
+            </div>
+
+            <div class="space-y-2 text-left bg-black/40 p-4 rounded border border-gray-800 font-mono text-xs h-32 overflow-hidden flex flex-col justify-end">
+                <div id="console-logs" class="text-green-500/80 space-y-1">
+                    <!-- Logs will appear here -->
+                </div>
+            </div>
+
+            <div>
+                <h3 class="text-white font-bold text-lg animate-pulse" id="processing-stage">מפענח מבנה דקדוקי...</h3>
+                <p class="text-gray-400 text-xs mt-2">אין לכבות את המכשיר במהלך הבדיקה</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 4: RESULTS (THE PRANK) -->
+    <div id="view-result" class="hidden-view w-full max-w-md p-6 flex flex-col space-y-6 animate-[fadeIn_0.5s_ease-out]">
+        
+        <!-- Danger Header -->
+        <div class="bg-red-500/10 border border-red-500/50 rounded-xl p-4 flex items-center gap-4 animate-pulse">
+            <div class="bg-red-500 rounded-full p-2">
+                <i data-lucide="siren" class="w-6 h-6 text-white animate-bounce"></i>
+            </div>
+            <div>
+                <h2 class="text-red-500 font-black text-xl uppercase tracking-wider">זוהתה בינה מלאכותית</h2>
+                <p class="text-red-400 text-xs">רמת סבירות קריטית</p>
+            </div>
+        </div>
+
+        <!-- Score Gauge -->
+        <div class="relative py-4 flex justify-center">
+            <div class="w-48 h-48 rounded-full border-8 border-gray-800 relative flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-8 border-red-500 border-l-transparent border-b-transparent rotate-45"></div>
+                <div class="text-center">
+                    <div class="text-5xl font-black text-white tracking-tighter" id="ai-score">98.2%</div>
+                    <div class="text-xs text-gray-400 font-mono uppercase mt-1">AI Probability</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fake Metrics -->
+        <div class="space-y-3">
+            <h3 class="text-gray-400 text-xs font-mono uppercase border-b border-gray-800 pb-2 mb-3">Forensic Analysis Report</h3>
+            
+            <div class="flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-red-500">
+                <span class="text-gray-300">Semantic Coherence</span>
+                <span class="font-mono text-red-400 font-bold">ARTIFICIAL</span>
+            </div>
+            
+            <div class="flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-orange-500">
+                <span class="text-gray-300">Human Perplexity</span>
+                <span class="font-mono text-orange-400 font-bold">LOW (12%)</span>
+            </div>
+
+            <div class="flex items-center justify-between text-sm p-3 bg-gray-800/50 rounded border-l-4 border-purple-500">
+                <span class="text-gray-300">Pattern Match</span>
+                <span class="font-mono text-purple-400 font-bold">GPT-4-TURBO</span>
+            </div>
+        </div>
+
+        <div class="bg-black/40 p-4 rounded text-xs text-gray-500 font-mono">
+            ID: <span id="report-id">#8492-AX</span><br>
+            Timestamp: <span id="report-time"></span><br>
+            Status: <span class="text-red-500">FLAGGED</span>
+        </div>
+
+        <button onclick="location.reload()" class="w-full py-3 bg-gray-800 hover:bg-gray-700 rounded-lg text-white font-medium transition-colors border border-gray-600">
+            בצע סריקה נוספת
+        </button>
+    </div>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // State & DOM Elements
+        let stream = null;
+        let attemptCount = 0;
+        const landingView = document.getElementById('view-landing');
+        const cameraView = document.getElementById('view-camera');
+        const processingView = document.getElementById('view-processing');
+        const resultView = document.getElementById('view-result');
+        const videoElement = document.getElementById('camera-feed');
+        const instruction = document.getElementById('scan-instruction');
+        const focusRect = document.getElementById('focus-rect');
+        
+        // Timer Logic
+        setInterval(() => {
+            const now = new Date();
+            if(document.getElementById('camera-timer')) {
+                document.getElementById('camera-timer').innerText = now.toLocaleTimeString();
+            }
+        }, 1000);
+
+        async function startCamera() {
+            try {
+                // Request camera (try environment/back camera first)
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" } 
+                });
+                videoElement.srcObject = stream;
+                
+                landingView.classList.add('hidden-view');
+                cameraView.classList.remove('hidden-view');
+                attemptCount = 0;
+                
+                // Initial Instruction
+                instruction.innerText = "מאתר מסמך...";
+                instruction.className = "bg-black/60 text-white text-xs px-2 py-1 rounded font-mono";
+                focusRect.className = "absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-40 focus-box rounded-lg";
+                
+            } catch (err) {
+                alert("נדרשת גישה למצלמה כדי לבצע סריקה אופטית.");
+                console.error(err);
+            }
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            cameraView.classList.add('hidden-view');
+            landingView.classList.remove('hidden-view');
+        }
+
+        function attemptCapture() {
+            // THE PRANK LOGIC IN CAMERA
+            if (attemptCount === 0) {
+                // Step 1: Fake "Move Closer"
+                instruction.innerText = "הטקסט רחוק מדי. נא לקרב את המכשיר ב-10 ס״מ";
+                instruction.classList.replace("bg-black/60", "bg-red-500/80");
+                focusRect.classList.add("active"); // Turns red/smaller
+                
+                // Play error sound simulated by vibration if possible
+                if (navigator.vibrate) navigator.vibrate(200);
+
+                setTimeout(() => {
+                    instruction.innerText = "מתמקד...";
+                    instruction.classList.replace("bg-red-500/80", "bg-yellow-500/80");
+                }, 2500);
+
+                attemptCount++;
+                return; 
+            }
+
+            if (attemptCount === 1) {
+                // Step 2: Fake "Stabilize"
+                instruction.innerText = "נא לייצב את המצלמה... לא לזוז!";
+                instruction.classList.replace("bg-yellow-500/80", "bg-blue-500/80");
+                focusRect.classList.remove("active");
+                
+                setTimeout(() => {
+                   takeFakePhoto();
+                }, 1500);
+                return;
+            }
+        }
+
+        function takeFakePhoto() {
+            // Flash Effect
+            const flash = document.createElement('div');
+            flash.className = "fixed inset-0 bg-white z-[100] pointer-events-none";
+            document.body.appendChild(flash);
+            
+            // Sound effect logic would go here, simulated by vibration
+            if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+
+            setTimeout(() => {
+                flash.style.opacity = '0';
+                flash.style.transition = 'opacity 0.5s';
+                setTimeout(() => flash.remove(), 500);
+                
+                // Move to processing
+                startProcessing();
+            }, 100);
+        }
+
+        function startProcessing() {
+            // Stop camera to save battery/resources
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+
+            cameraView.classList.add('hidden-view');
+            processingView.classList.remove('hidden-view');
+
+            const stages = [
+                "מחלץ שכבות טקסט (OCR)...",
+                "מנתח וקטורים סמנטיים...",
+                "בודק מול מאגר GPT-4...",
+                "מזהה דפוסים סינתטיים...",
+                "מחשב ציון אמינות..."
+            ];
+
+            const logs = document.getElementById('console-logs');
+            const stageText = document.getElementById('processing-stage');
+            const percentText = document.getElementById('progress-percent');
+            let percent = 0;
+
+            // Log Generator
+            const logInterval = setInterval(() => {
+                const randomHex = '0x' + Math.floor(Math.random()*16777215).toString(16);
+                const p = document.createElement('div');
+                p.innerText = `> ANALYZING_CHUNK_${Math.floor(Math.random()*9999)} [${randomHex}]`;
+                logs.appendChild(p);
+                logs.scrollTop = logs.scrollHeight;
+            }, 200);
+
+            // Progress Bar Logic
+            const progressInterval = setInterval(() => {
+                percent += Math.floor(Math.random() * 3) + 1;
+                if (percent > 100) percent = 100;
+                percentText.innerText = percent + "%";
+
+                // Update text based on percent
+                if (percent < 30) stageText.innerText = stages[0];
+                else if (percent < 50) stageText.innerText = stages[1];
+                else if (percent < 70) stageText.innerText = stages[2];
+                else if (percent < 90) stageText.innerText = stages[3];
+                else stageText.innerText = stages[4];
+
+                if (percent >= 100) {
+                    clearInterval(progressInterval);
+                    clearInterval(logInterval);
+                    setTimeout(showResult, 800);
+                }
+            }, 80);
+        }
+
+        function showResult() {
+            processingView.classList.add('hidden-view');
+            resultView.classList.remove('hidden-view');
+
+            // Set dynamic details
+            document.getElementById('report-time').innerText = new Date().toLocaleString('he-IL');
+            
+            // Randomize score slightly between 96.0 and 99.9 for realism
+            const score = (96 + Math.random() * 3.9).toFixed(1);
+            document.getElementById('ai-score').innerText = score + "%";
+            
+            // Re-init icons for the new view
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
